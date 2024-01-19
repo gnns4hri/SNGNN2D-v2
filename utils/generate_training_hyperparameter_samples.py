@@ -117,7 +117,7 @@ def get_random_hyperparameters(identifier):
         'graph_type': graph_type,
         'epochs': 1000, # 1000
         'patience': 6,
-        'batch_size': randrange(start=150, stop=1800), # start=100, stop=1500
+        'batch_size': randrange(start=5, stop=10),
         'num_gnn_units': gnn_units,
         'num_gnn_heads': gnn_heads,
         'lr': choice([0.0001, 0.00025, 0.0005]),
@@ -146,7 +146,7 @@ best_by_option = {}
 if len(sys.argv) > 1:
     pathh = sys.argv[1]
 else:
-    pathh = 'LIST_OF_TASKS.pckl'
+    pathh = '../LIST_OF_TASKS.pckl'
 try:
     print_best_options(pickle.load(open(pathh, 'rb')))
 except FileNotFoundError:

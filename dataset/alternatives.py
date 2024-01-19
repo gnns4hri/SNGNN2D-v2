@@ -1,5 +1,5 @@
 
-from alternatives_utils import *
+from .alternatives_utils import *
 
 
 #################################################################

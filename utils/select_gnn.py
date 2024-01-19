@@ -1,5 +1,3 @@
-import sys
-from re import X
 import torch
 import torch.nn as nn
 from nets.rgcnDGL import RGCN
@@ -9,7 +7,7 @@ from nets.Tconv import ResnetGenerator
 import dgl
 import functools
 import torch.nn.functional as F
-from alternatives_utils import grid_width, image_width
+from dataset.alternatives_utils import grid_width, image_width
 
 
 def get_activation_function(activation_name):

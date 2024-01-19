@@ -2,7 +2,7 @@ import sys
 import pickle
 
 
-path = 'LIST_OF_TASKS.pckl'
+path = '../LIST_OF_TASKS.pckl'
 tasks = pickle.load(open(path, 'rb'))
 
 works_done = []

@@ -1,21 +1,30 @@
 import sys
 import os
+import time
 import numpy as np
 import torch
 import dgl
 import pickle
+import random
 import signal
+
+sys.path.append(os.getcwd())
 
 from torch.utils.data import DataLoader
 from sklearn.metrics import mean_squared_error
-import dataset.socnav2d_dataset as socnav2d
 
+import dataset.socnav2d_dataset as socnav2d
 from utils.select_gnn import SELECT_GNN
 
 if torch.cuda.is_available() is True:
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
+
+
+def num_of_params(model):
+    model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+    return sum([np.prod(p.size()) for p in model_parameters])
 
 
 def describe_model(model):
@@ -82,11 +91,44 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # MAIN
 
-def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=None, patience=None, batch_size=None,
-         num_classes=1, num_channels=1, num_hidden=None, heads=None, gnn_layers=None, cnn_layers=None, nonlinearity=None, final_activation=None,
-         nonlinearity_cnn=None, final_activation_cnn=None,residual=None, lr=None, weight_decay=None, in_drop=None, alpha=None, attn_drop=None, cuda=None, 
-         fw='dgl', index=None, previous_model=None):
+def main(training_file, dev_file, test_file, task, previous_model=None):
     global stop_training
+
+    graph_type = task['graph_type']
+    net = task['gnn_network']
+    epochs = task['epochs']
+    patience = task['patience']
+    batch_size = task['batch_size']
+    num_hidden = task['num_gnn_units']
+    heads = task['num_gnn_heads']
+    residual = False
+    lr = task['lr']
+    weight_decay = task['weight_decay']
+    gnn_layers = task['num_gnn_layers']
+    cnn_layers = task['num_cnn_layers']  ##
+    in_drop = task['in_drop']
+    alpha = task['alpha']
+    attn_drop = task['attn_drop']
+    num_bases = task['num_bases']
+    num_channels = task['num_channels']  ##
+    num_classes = task['num_classes']  ##
+
+    _, num_rels = socnav2d.get_relations(graph_type)
+    num_rels += (socnav2d.N_INTERVALS - 1) * 2
+    if num_bases < 1:
+        num_bases = num_rels
+
+    fw = task['fw']
+    identifier = task['identifier']
+    nonlinearity = task['non-linearity']
+    final_activation = task['final_activation']
+    final_activation_cnn = task['final_activation_cnn']  ##
+    activation_cnn = task['activation_cnn']  ##
+    min_train_loss = float("inf")
+    min_dev_loss = float("inf")
+
+    output_list_records_train_loss = []
+    output_list_records_dev_loss = []
 
     loss_fcn = torch.nn.MSELoss()
 
@@ -94,8 +136,10 @@ def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=N
     # print('HEADS', heads)
     # print('OUT_HEADS', num_out_heads)
     print('GNN LAYERS', gnn_layers)
+    print('CNN LAYERS', cnn_layers)
     print('HIDDEN', num_hidden)
-    print('FINAL ACTIVATION', final_activation)
+    print('FINAL ACTIVATION GNN', final_activation)
+    print('FINAL ACTIVATION', final_activation_cnn)
     print('RESIDUAL', residual)
     print('inDROP', in_drop)
     print('atDROP', attn_drop)
@@ -108,17 +152,20 @@ def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=N
     print('=========================')
 
     # create the dataset
+    time_dataset_a = time.time()
     print('Loading training set...')
-    train_dataset = socnav2d.SocNavDataset(training_file, net=net, mode='train', alt=graph_type, raw_dir='./')
+    train_dataset = socnav2d.SocNavDataset(training_file, net=net, mode='train', alt=graph_type, raw_dir='../')
     print('Loading dev set...')
-    valid_dataset = socnav2d.SocNavDataset(dev_file, net=net, mode='valid', alt=graph_type, raw_dir='./')
+    valid_dataset = socnav2d.SocNavDataset(dev_file, net=net, mode='valid', alt=graph_type, raw_dir='../')
     print('Loading test set...')
-    test_dataset = socnav2d.SocNavDataset(test_file, net=net, mode='valid', alt=graph_type, raw_dir='./')
+    test_dataset = socnav2d.SocNavDataset(test_file, net=net, mode='valid', alt=graph_type, raw_dir='../')
     print('Done loading files')
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate)
     valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, collate_fn=collate)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate)
-
+    # time_dataset_b = time.time()
+    # for _ in range(5):
+    #     print(f'TIME {time_dataset_b - time_dataset_a}')
 
     _, num_rels = socnav2d.get_relations(graph_type)
     num_rels += (socnav2d.N_INTERVALS - 1) * 2
@@ -138,15 +185,15 @@ def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=N
     # define the model
     model = SELECT_GNN(num_features=num_feats,
                        num_edge_feats=num_edge_feats,
-                       n_classes=num_classes,
+                       n_classes=n_classes,
                        num_hidden=num_hidden,
                        gnn_layers=gnn_layers,
                        cnn_layers=cnn_layers,
                        dropout=in_drop,
                        activation=nonlinearity,
                        final_activation=final_activation,
-                       activation_cnn=nonlinearity_cnn,
                        final_activation_cnn=final_activation_cnn,
+                       activation_cnn= activation_cnn,
                        num_channels=num_channels,
                        gnn_type=net,
                        num_heads=heads,
@@ -187,7 +234,7 @@ def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=N
             for layer in model.gnn_object.layers:
                     layer.g = subgraph
             if net in ['rgcn']:
-                    logits = model(feats.float(), subgraph.edata['rel_type'].squeeze().to(device), None)
+                    logits = model(feats.double(), subgraph.edata['rel_type'].squeeze().to(device), None)
             elif net in ['mpnn']:
                     logits = model(feats.float(), subgraph, efeats.float())
             else:
@@ -208,16 +255,22 @@ def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=N
             b = list(model.parameters())[0].clone()
             not_learning = torch.equal(a.data, b.data)
             if not_learning:
+                import sys
                 print('Not learning')
+                sys.exit(0)
             else:
                 pass
 
             loss_list.append(loss.item())
+
         loss_data = np.array(loss_list).mean()
+        if loss_data < min_train_loss:
+            min_train_loss = loss_data
+
         print('Loss: {}'.format(loss_data))
+        output_list_records_train_loss.append(float(loss_data))
         if epoch % 5 == 0:
-            if epoch % 5 == 0:
-                print("Epoch {:05d} | Loss: {:.6f} | Patience: {} | ".format(epoch, loss_data, cur_step), end='')
+            print("Epoch {:05d} | Loss: {:.6f} | Patience: {} | ".format(epoch, loss_data, cur_step), end='')
             score_list = []
             val_loss_list = []
             for batch, valid_data in enumerate(valid_dataloader):
@@ -230,23 +283,29 @@ def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=N
                 else:
                     efeats = None
                 labels = labels.to(device)
-                score, val_loss = evaluate(feats, efeats, model, subgraph, labels.float(), loss_fcn, fw, net)
+                score, val_loss = evaluate(feats.float(), efeats.float(), model, subgraph, labels.float(), loss_fcn, fw, net)
                 score_list.append(score)
                 val_loss_list.append(val_loss)
             mean_score = np.array(score_list).mean()
             mean_val_loss = np.array(val_loss_list).mean()
-            if epoch % 5 == 0:
-                print("Score: {:.6f} MEAN: {:.6f} BEST: {:.6f}".format(mean_score, mean_val_loss, best_loss))
+
+            print("Score: {:.6f} MEAN: {:.6f} BEST: {:.6f}".format(mean_score, mean_val_loss, best_loss))
+            output_list_records_dev_loss.append(mean_val_loss)
+
             # early stop
             if best_loss > mean_val_loss or best_loss < 0:
                 print('Saving...')
-                directory = "./trained_models/model_params"
+                directory = os.getcwd() + "/trained_models/" + str(identifier).zfill(5)
                 try:
                     os.makedirs(directory, exist_ok=True)
                 except:
                     print('Exception creating directory', directory)
-                best_loss = mean_val_loss
 
+                best_loss = mean_val_loss
+                if best_loss < min_dev_loss:
+                    min_dev_loss = best_loss
+
+                model.eval()
                 # Save the model
                 torch.save(model.state_dict(), directory + '/SOCNAV_V2.tch')
                 params = {'loss': best_loss,
@@ -258,13 +317,13 @@ def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=N
                           'num_edge_feats': num_edge_feats,
                           'num_hidden': num_hidden,
                           'graph_type': graph_type,
-                          'num_channels': num_channels,
-                          'n_classes': n_classes,
+                          'num_channels': num_channels, ##
+                          'n_classes': n_classes,  ##
                           'heads': heads,
                           'nonlinearity': nonlinearity,
                           'final_activation': final_activation,
-                          'nonlinearity_cnn': nonlinearity_cnn,
-                          'final_activation_cnn': final_activation_cnn,
+                          'nonlinearity_cnn': activation_cnn, ##
+                          'final_activation_cnn': final_activation_cnn, ##
                           'in_drop': in_drop,
                           'attn_drop': attn_drop,
                           'alpha': alpha,
@@ -280,78 +339,75 @@ def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=N
                 if cur_step >= patience:
                     break
 
+
+    time_a = time.time()
     test_score_list = []
+    valid_score_list = []
     model.load_state_dict(torch.load(directory + '/SOCNAV_V2.tch', map_location=device))
-    for batch, test_data in enumerate(test_dataloader):
-        subgraph, labels = test_data
-        subgraph.set_n_initializer(dgl.init.zero_initializer)
-        subgraph.set_e_initializer(dgl.init.zero_initializer)
-        feats = subgraph.ndata['h'].to(device)
-        if 'he' in subgraph.edata.keys():
-            efeats = subgraph.edata['he'].to(device)
+
+    for check in ['test', 'dev']:
+        if check == 'test':
+            check_dataloader = test_dataloader
+            check_score_list = test_score_list
+        elif check == 'dev':
+            check_dataloader = valid_dataloader
+            check_score_list = valid_score_list
         else:
-            efeats = None
-        labels = labels.to(device)
-        test_score_list.append(evaluate(feats, efeats, model, subgraph, labels.float(), loss_fcn, fw, net)[1])
-    print("MSE for the test set {}".format(np.array(test_score_list).mean()))
+            raise Exception('check must be either "test" or "dev"')
+
+        for batch, check_data in enumerate(check_dataloader):
+            subgraph, labels = check_data
+            subgraph.set_n_initializer(dgl.init.zero_initializer)
+            subgraph.set_e_initializer(dgl.init.zero_initializer)
+            feats = subgraph.ndata['h'].to(device)
+            if 'he' in subgraph.edata.keys():
+                efeats = subgraph.edata['he'].to(device)
+            else:
+                efeats = None
+            labels = labels.to(device)
+            check_score_list.append(evaluate(feats, efeats, model, subgraph, labels.float(), loss_fcn, fw, net)[1])
+
+    time_b = time.time()
+    time_delta = float(time_b-time_a)
+    test_loss = np.array(test_score_list).mean()
+    print("MSE for the test set {}".format(test_loss))
+
     model.eval()
-    return best_loss
+    return min_train_loss, min_dev_loss, test_loss, time_delta, num_of_params(model), epoch, \
+           output_list_records_train_loss, output_list_records_dev_loss
 
 
 if __name__ == '__main__':
-    retrain = False
-    if len(sys.argv) == 3:
-        ext_args = {}
-        for i in range(2):
-            _, ext = os.path.splitext(sys.argv[i + 1])
-            ext_args[ext] = sys.argv[i + 1]
-        if '.prms' in ext_args.keys() and '.tch' in ext_args.keys():
-            params = pickle.load(open(ext_args['.prms'], 'rb'), fix_imports=True)
-            retrain = True
+    list_of_tasks = pickle.load(open('LIST_OF_TASKS.pckl', 'rb'))
 
-    if not retrain:
-        print("If you want to retrain, use \"python3 train.py file.prms file.tch\"")
-        best_loss = main('dataset/train_set.txt', 'dataset/dev_set.txt', 'dataset/test_set.txt',
-                         graph_type='8',
-                         net='gat', # Options = gat, mpnn, rgcn
-                         epochs=2300,
-                         patience=6,
-                         batch_size=5,  # 40,
-                         num_classes=1,
-                         num_channels=35,
-                         num_hidden=[95, 71, 62, 57, 45, 35],
-                         heads=[34, 28, 22, 15, 13, 10],  # Only for gat network (same number of heads as num_hidden)
-                         residual=False,
-                         lr=0.00005,
-                         weight_decay=1.e-11,
-                         nonlinearity='elu',
-                         final_activation='relu',
-                         nonlinearity_cnn='leaky_relu',
-                         final_activation_cnn='tanh',
-                         gnn_layers=7,  # Must coincide with num_hidden + 1(output layer),
-                         cnn_layers=3,
-                         in_drop=0.,
-                         alpha= 0.2088642717278257,
-                         attn_drop=0.,
-                         cuda=True,
-                         fw='dgl')
-    else:
-        params = pickle.load(open(ext_args['.prms'], 'rb'), fix_imports=True)
-        best_loss = main('dataset/train_set.txt', 'dataset/dev_set.txt', 'dataset/test_set.txt',
-                         graph_type=params['graph_type'],
-                         net=params['net'],
-                         epochs=500,
-                         patience=5,
-                         batch_size=15,
-                         num_hidden=params['num_hidden'],
-                         heads=params['heads'],
-                         residual=params['residual'],
-                         lr=0.0001,
-                         weight_decay=0.000,
-                         gnn_layers=params['gnn_layers'],
-                         in_drop=params['in_drop'],
-                         alpha=params['alpha'],
-                         attn_drop=params['attn_drop'],
-                         cuda=True,
-                         fw=params['fw'],
-                         previous_model=ext_args['.tch'])
+    for tttxxx in range(1):
+        index = random.randrange(start=0, stop=len(list_of_tasks))
+        gone = 0
+        while list_of_tasks[index]['train_loss'] >= 0:
+            index += 1
+            if index >= len(list_of_tasks):
+                index = 0
+                gone += 1
+                if gone > 2:
+                    print("Looped twice, that means we are done.")
+                    sys.exit(0)
+        print('GOT THE FOLLOWING TASK FROM THE LIST:', list_of_tasks[index])
+        list_of_tasks[index]['train_loss'] = 0
+        pickle.dump(list_of_tasks, open('LIST_OF_TASKS.pckl', 'wb'))
+        task = list_of_tasks[index]
+
+        time_a = time.time()
+        train_loss, dev_loss, test_loss, test_time, num_parameters, last_epoch, train_scores, dev_scores = main(
+            '../dataset/train_set.txt', 'dataset/dev_set.txt', 'dataset/test_set.txt', task)
+        time_b = time.time()
+
+        list_of_tasks[index]['train_loss'] = train_loss
+        list_of_tasks[index]['dev_loss'] = dev_loss
+        list_of_tasks[index]['test_loss'] = test_loss
+        list_of_tasks[index]['test_time'] = test_time
+        list_of_tasks[index]['num_parameters'] = num_parameters
+        list_of_tasks[index]['elapsed'] = time_b - time_a
+        list_of_tasks[index]['last_epoch'] = last_epoch
+        list_of_tasks[index]['train_scores'] = train_scores
+        list_of_tasks[index]['dev_scores'] = dev_scores
+        pickle.dump(list_of_tasks, open('LIST_OF_TASKS.pckl', 'wb'))

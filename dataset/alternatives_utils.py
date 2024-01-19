@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 
 N_INTERVALS = 3
 FRAMES_INTERVAL = 1.
-WITH_EDGE_FEATURES = False
 
 grid_width = 19  # 30 #18
 image_width = 256  # 121 #73

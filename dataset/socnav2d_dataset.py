@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-from tkinter.ttk import LabeledScale
 
 import dgl
 from dgl.data import DGLDataset
@@ -9,27 +8,27 @@ from dgl import save_graphs, load_graphs
 from dgl.data.utils import save_info, load_info
 
 import cv2
-import time
 
-from alternatives import *
-    
+from .alternatives import *
 
 #################################################################
 # Class to load the dataset
 #################################################################
+
 
 class SocNavDataset(DGLDataset):
     grid_data = gridData(*generate_grid_graph_data('8'))
     default_alt = '8'
     p_arr = generate_static_tables(area_width, grid_width, area_width)
 
-    def __init__(self, path, alt, mode='train', raw_dir='data/', prev_graph = None, init_line=-1, end_line=-1, loc_limit=limit,
+    def __init__(self, path, alt, net, mode='train', raw_dir='data/', prev_graph = None, init_line=-1, end_line=-1, loc_limit=limit,
                  force_reload=False, verbose=False, debug=False, device = 'cpu'):
         if type(path) is str:
             self.path = raw_dir + path
         else:
             self.path = path
         self.mode = mode
+        self.net = net
         self.alt = alt
         self.init_line = init_line
         self.end_line = end_line
@@ -45,6 +44,8 @@ class SocNavDataset(DGLDataset):
         self.debug = debug
         self.limit = loc_limit
         self.force_reload = force_reload
+        self.edge_features = (self.net == 'mpnn')
+
 
         if self.mode == 'test':
             self.force_reload = True
@@ -100,7 +101,7 @@ class SocNavDataset(DGLDataset):
             dst_nodes = th.cat([self.grid_data.dst_nodes, (room_graph_data.dst_nodes + self.grid_data.n_nodes)], dim=0)
             edge_types = th.cat([self.grid_data.edge_types, room_graph_data.edge_types], dim=0)
             edge_norms = th.cat([self.grid_data.edge_norms, room_graph_data.edge_norms], dim=0)
-            if WITH_EDGE_FEATURES:
+            if self.edge_features:
                 edge_feats = th.cat([self.grid_data.edge_feats, room_graph_data.edge_feats], dim=0)
                 edge_feats_list = []
 
@@ -122,7 +123,7 @@ class SocNavDataset(DGLDataset):
                         dst_nodes = th.cat([dst_nodes, th.tensor([r_n_id + self.grid_data.n_nodes], dtype=th.int32)], dim=0)
                         edge_types = th.cat([edge_types, th.LongTensor([rels.index('g_' + r_n_type)])], dim=0)
                         edge_norms = th.cat([edge_norms, th.Tensor([[1.]])])
-                        if WITH_EDGE_FEATURES:
+                        if self.edge_features:
                             new_edge_features = th.zeros(n_edge_features)
                             new_edge_features[all_edge_features.index('g_'+ r_n_type)] = 1
                             # if self.alt == '9':
@@ -135,7 +136,7 @@ class SocNavDataset(DGLDataset):
                         dst_nodes = th.cat([dst_nodes, th.tensor([g_id], dtype=th.int32)], dim=0)
                         edge_types = th.cat([edge_types, th.LongTensor([rels.index(r_n_type + '_g')])], dim=0)
                         edge_norms = th.cat([edge_norms, th.Tensor([[1.]])])
-                        if WITH_EDGE_FEATURES:
+                        if self.edge_features:
                             new_edge_features = th.zeros(n_edge_features)
                             new_edge_features[all_edge_features.index(r_n_type + '_g')] = 1
                             # if self.alt == '9':
@@ -148,7 +149,7 @@ class SocNavDataset(DGLDataset):
             n_nodes = room_graph_data.n_nodes + self.grid_data.n_nodes
             typeMapRoomShift = dict()
             coordinates_roomShift = dict()
-            if WITH_EDGE_FEATURES:
+            if self.edge_features:
                 edge_feats_list = th.stack(edge_feats_list)
                 edge_feats = th.cat([edge_feats, edge_feats_list], dim=0)
 
@@ -174,7 +175,7 @@ class SocNavDataset(DGLDataset):
             final_graph.ndata['h'] = features.to(self.device)
             edge_types = edge_types.to(self.device, dtype=th.long)
             edge_norms = edge_norms.to(self.device, dtype=th.float64)
-            if WITH_EDGE_FEATURES:
+            if self.edge_features:
                 edge_feats = edge_feats.to(self.device, dtype=th.float64)
                 final_graph.edata.update({'rel_type': edge_types, 'norm': edge_norms, 'he': edge_feats})
             else:
