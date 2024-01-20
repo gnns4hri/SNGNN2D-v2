@@ -85,16 +85,19 @@ class SocNavDataset(DGLDataset):
         super(SocNavDataset, self).__init__("SocNav", raw_dir=raw_dir, force_reload=self.force_reload, verbose=verbose)
 
     def get_dataset_name(self):
-        graphs_path = 'graphs_' + self.mode + '_alt_' + self.alt + '_s_' + str(limit) + '.bin'
-        info_path = 'info_' + self.mode + '_alt_' + self.alt + '_s_' + str(limit) + '.pkl'
+        graphs_path = 'graphs_' + self.mode + '_alt_' + self.alt + '_efeats_' + str(self.edge_features) + '_s_' + str(limit) + '.bin'
+        info_path = 'info_' + self.mode + '_alt_' + self.alt + '_efeats_' + str(self.edge_features) + '_s_' + str(limit) + '.pkl'
         return graphs_path, info_path
 
     def generate_final_graph(self, raw_data):
         # time_0 = time.time()
         rels, num_rels = get_relations(self.alt)
         all_edge_features, n_edge_features = get_edge_features(self.alt)
-        room_graph_data = graphData(*self.dataloader(raw_data, self.alt, []))
-        # time_1 = time.time()
+        if self.alt == '8':
+            room_graph_data = graphData(*self.dataloader(raw_data, self.alt, [], self.edge_features))
+        else:
+            room_graph_data = graphData(*self.dataloader(raw_data, self.alt, []))
+
         if self.grid_data is not None:
             # Merge room and grid graph
             src_nodes = th.cat([self.grid_data.src_nodes,(room_graph_data.src_nodes + self.grid_data.n_nodes)], dim=0)
@@ -121,7 +124,7 @@ class SocNavDataset(DGLDataset):
                         x_g, y_g = self.grid_data.position_by_id[g_id]
                         src_nodes = th.cat([src_nodes, th.tensor([g_id], dtype=th.int32)], dim=0)
                         dst_nodes = th.cat([dst_nodes, th.tensor([r_n_id + self.grid_data.n_nodes], dtype=th.int32)], dim=0)
-                        edge_types = th.cat([edge_types, th.LongTensor([rels.index('g_' + r_n_type)])], dim=0)
+                        edge_types = th.cat([edge_types, th.IntTensor([rels.index('g_' + r_n_type)])], dim=0)
                         edge_norms = th.cat([edge_norms, th.Tensor([[1.]])])
                         if self.edge_features:
                             new_edge_features = th.zeros(n_edge_features)
@@ -134,7 +137,7 @@ class SocNavDataset(DGLDataset):
 
                         src_nodes = th.cat([src_nodes, th.tensor([r_n_id + self.grid_data.n_nodes], dtype=th.int32)], dim=0)
                         dst_nodes = th.cat([dst_nodes, th.tensor([g_id], dtype=th.int32)], dim=0)
-                        edge_types = th.cat([edge_types, th.LongTensor([rels.index(r_n_type + '_g')])], dim=0)
+                        edge_types = th.cat([edge_types, th.IntTensor([rels.index(r_n_type + '_g')])], dim=0)
                         edge_norms = th.cat([edge_norms, th.Tensor([[1.]])])
                         if self.edge_features:
                             new_edge_features = th.zeros(n_edge_features)
@@ -174,9 +177,9 @@ class SocNavDataset(DGLDataset):
             final_graph = dgl.graph((src_nodes, dst_nodes), num_nodes=n_nodes, idtype=th.int32, device=self.device)
             final_graph.ndata['h'] = features.to(self.device)
             edge_types = edge_types.to(self.device, dtype=th.long)
-            edge_norms = edge_norms.to(self.device, dtype=th.float64)
+            edge_norms = edge_norms.to(self.device, dtype=th.float32)
             if self.edge_features:
-                edge_feats = edge_feats.to(self.device, dtype=th.float64)
+                edge_feats = edge_feats.to(self.device, dtype=th.float32)
                 final_graph.edata.update({'rel_type': edge_types, 'norm': edge_norms, 'he': edge_feats})
             else:
                 final_graph.edata.update({'rel_type': edge_types, 'norm': edge_norms})
@@ -288,7 +291,7 @@ class SocNavDataset(DGLDataset):
 
                 src_list.append(th.IntTensor(new_src_list))
                 dst_list.append(th.IntTensor(new_dst_list))
-                edge_types_list.append(th.LongTensor(new_etypes_list))
+                edge_types_list.append(th.IntTensor(new_etypes_list))
                 edge_norms_list.append(th.Tensor(new_enorms_list))
                 edge_feats_list.append(new_edge_feats)
             if N_INTERVALS>1:
@@ -338,7 +341,7 @@ class SocNavDataset(DGLDataset):
             
             self.labels.append(np.zeros((1, image_width, image_width)))
 
-            self.labels = th.tensor(self.labels, dtype=th.float64)
+            self.labels = th.tensor(self.labels, dtype=th.float32)
 
         elif type(self.path) is str and self.path.endswith('.txt'):
             linen = -1
@@ -380,7 +383,7 @@ class SocNavDataset(DGLDataset):
                 linen += 1
 
 
-            self.labels = th.tensor(self.labels, dtype=th.float64)
+            self.labels = th.tensor(self.labels, dtype=th.float32)
 
         elif type(self.path) == list and len(self.path) >= 1:
             # print('generating graph')
@@ -397,18 +400,18 @@ class SocNavDataset(DGLDataset):
                 else:
                     self.load_one_graph(self.path)
             self.labels.append(np.zeros((1, image_width, image_width)))        
-            self.labels = th.tensor(self.labels, dtype=th.float64)
+            self.labels = th.tensor(self.labels, dtype=th.float32)
         elif type(self.path) == list and type(self.path[0]) == str:
             raw_data = json.loads(self.path)
             final_graph = self.generate_final_graph(raw_data)
             self.graphs.append(final_graph)
             self.labels.append(np.zeros((1, image_width, image_width)))
-            self.labels = th.tensor(self.labels, dtype=th.float64)
+            self.labels = th.tensor(self.labels, dtype=th.float32)
         else:
             final_graph = self.generate_final_graph(self.path)
             self.graphs.append(final_graph)
             self.labels.append(np.zeros((1, image_width, image_width)))
-            self.labels = th.tensor(self.labels, dtype=th.float64)
+            self.labels = th.tensor(self.labels, dtype=th.float32)
 
     def __getitem__(self, idx):
         return self.graphs[idx], self.labels[idx]

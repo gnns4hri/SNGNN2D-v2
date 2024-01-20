@@ -152,7 +152,6 @@ def main(training_file, dev_file, test_file, task, previous_model=None):
     print('=========================')
 
     # create the dataset
-    time_dataset_a = time.time()
     print('Loading training set...')
     train_dataset = socnav2d.SocNavDataset(training_file, net=net, mode='train', alt=graph_type, raw_dir='../')
     print('Loading dev set...')
@@ -163,9 +162,7 @@ def main(training_file, dev_file, test_file, task, previous_model=None):
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate)
     valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, collate_fn=collate)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate)
-    # time_dataset_b = time.time()
-    # for _ in range(5):
-    #     print(f'TIME {time_dataset_b - time_dataset_a}')
+
 
     _, num_rels = socnav2d.get_relations(graph_type)
     num_rels += (socnav2d.N_INTERVALS - 1) * 2
@@ -234,7 +231,7 @@ def main(training_file, dev_file, test_file, task, previous_model=None):
             for layer in model.gnn_object.layers:
                     layer.g = subgraph
             if net in ['rgcn']:
-                    logits = model(feats.double(), subgraph.edata['rel_type'].squeeze().to(device), None)
+                    logits = model(feats.float(), subgraph.edata['rel_type'].squeeze().to(device), None)
             elif net in ['mpnn']:
                     logits = model(feats.float(), subgraph, efeats.float())
             else:
@@ -283,7 +280,7 @@ def main(training_file, dev_file, test_file, task, previous_model=None):
                 else:
                     efeats = None
                 labels = labels.to(device)
-                score, val_loss = evaluate(feats.float(), efeats.float(), model, subgraph, labels.float(), loss_fcn, fw, net)
+                score, val_loss = evaluate(feats, efeats, model, subgraph, labels.float(), loss_fcn, fw, net)
                 score_list.append(score)
                 val_loss_list.append(val_loss)
             mean_score = np.array(score_list).mean()

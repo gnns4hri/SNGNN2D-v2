@@ -312,29 +312,29 @@ if __name__ == '__main__':
     if not retrain:
         print("If you want to retrain, use \"python3 train.py file.prms file.tch\"")
         best_loss = main('dataset/train_set.txt', 'dataset/dev_set.txt', 'dataset/test_set.txt',
-                         graph_type='8',
-                         net='gat', # Options = gat, mpnn, rgcn
+                         graph_type='8', # We recommend to always use this graph alternative.
+                         net='mpnn',  # Options = gat, mpnn, rgcn (mpnn consumes a lot of gpu memory)
                          epochs=2300,
-                         patience=6,
-                         batch_size=5,  # 40,
-                         num_classes=1,
-                         num_channels=35,
-                         num_hidden=[95, 71, 62, 57, 45, 35],
+                         patience=6,  # For early stopping
+                         batch_size=40,
+                         num_classes=1,  # This must remain unchanged
+                         num_channels=35,  # These are the number of channels to the CNN input (GNN output)
+                         num_hidden=[95, 71, 62, 57, 45, 35],  # Number of neurons of hidden layers
                          heads=[34, 28, 22, 15, 13, 10],  # Only for gat network (same number of heads as num_hidden)
-                         residual=False,
-                         lr=0.00005,
+                         residual=False,  # Residual connections in the CNN
+                         lr=0.00005,  # Learning rate
                          weight_decay=1.e-11,
-                         nonlinearity='elu',
-                         final_activation='relu',
-                         nonlinearity_cnn='leaky_relu',
-                         final_activation_cnn='tanh',
+                         nonlinearity='elu',  # Activation of the hidden layers GNN
+                         final_activation='relu',  # Activation of the output layer GNN
+                         nonlinearity_cnn='leaky_relu',  # Activation of the hidden layers CNN
+                         final_activation_cnn='tanh',  # Activation of the output layer CNN
                          gnn_layers=7,  # Must coincide with num_hidden + 1(output layer),
-                         cnn_layers=3,
-                         in_drop=0.,
-                         alpha= 0.2088642717278257,
-                         attn_drop=0.,
-                         cuda=True,
-                         fw='dgl')
+                         cnn_layers=3,  # This must remain unchanged
+                         in_drop=0.,  # This only affect to the GAT network
+                         alpha=0.2088642717278257,  # This only affect to the GAT network
+                         attn_drop=0.,  # This only affect to the GAT network
+                         cuda=True,  # Set it to false if you want to run on CPU
+                         fw='dgl')  # This must remain unchanged
     else:
         params = pickle.load(open(ext_args['.prms'], 'rb'), fix_imports=True)
         best_loss = main('dataset/train_set.txt', 'dataset/dev_set.txt', 'dataset/test_set.txt',

@@ -1298,10 +1298,10 @@ def initializeAlt6(data_sequence, alt='6', w_segments=[]):
         edge_feats_list.append(edge_features)
 
     # Convert outputs to tensors
-    src_nodes = th.LongTensor(src_nodes)
-    dst_nodes = th.LongTensor(dst_nodes)
+    src_nodes = th.IntTensor(src_nodes)
+    dst_nodes = th.IntTensor(dst_nodes)
 
-    edge_types = th.LongTensor(edge_types)
+    edge_types = th.IntTensor(edge_types)
     edge_norms = th.Tensor(edge_norms)
 
     edge_feats = th.stack(edge_feats_list)
@@ -1311,8 +1311,10 @@ def initializeAlt6(data_sequence, alt='6', w_segments=[]):
 
 
 # Initialize alternative 8: people, objects, goal, walls, interactions and time features. Can be combined with the grid
-def initializeAlt8(data_sequence, alt='8', wall_segments=[]):
+def initializeAlt8(data_sequence, alt='8', wall_segments=None, with_edge_features=False):
     # Initialize variables
+    if wall_segments is None:
+        wall_segments = []
     rels, num_rels = get_relations(alt)
     edge_types = []  # List to store the relation of each edge
     edge_norms = []  # List to store the norm of each edge
@@ -1402,7 +1404,7 @@ def initializeAlt8(data_sequence, alt='8', wall_segments=[]):
                 edge_types.append(rels.index('r_o'))
                 edge_norms.append([1.])
                 # Edge features
-                if WITH_EDGE_FEATURES:
+                if with_edge_features:
                     edge_features = th.zeros(num_rels + 4)
                     edge_features[rels.index('o_r')] = 1
                     edge_features[-1] = dist
@@ -1456,7 +1458,7 @@ def initializeAlt8(data_sequence, alt='8', wall_segments=[]):
                 edge_norms.append([1.])
 
                 # Edge features
-                if WITH_EDGE_FEATURES:
+                if with_edge_features:
                     edge_features = th.zeros(num_rels + 4)
                     edge_features[rels.index('p_r')] = 1
                     edge_features[-1] = dist
@@ -1507,7 +1509,7 @@ def initializeAlt8(data_sequence, alt='8', wall_segments=[]):
             edge_norms.append([1.])
 
             # Edge features
-            if WITH_EDGE_FEATURES:
+            if with_edge_features:
                 edge_features = th.zeros(num_rels + 4)
                 edge_features[rels.index('t_r')] = 1
                 edge_features[-1] = dist
@@ -1554,7 +1556,7 @@ def initializeAlt8(data_sequence, alt='8', wall_segments=[]):
                 edge_norms.append([1.])
 
                 # Edge features
-                if WITH_EDGE_FEATURES:
+                if with_edge_features:
                     edge_features = th.zeros(num_rels + 4)
                     edge_features[rels.index('w_r')] = 1
                     edge_features[-1] = dist
@@ -1602,7 +1604,7 @@ def initializeAlt8(data_sequence, alt='8', wall_segments=[]):
         edge_norms.append([1.])
 
         # Edge features
-        if WITH_EDGE_FEATURES:
+        if with_edge_features:
             edge_features = th.zeros(num_rels + 4)
             edge_features[rels.index(typeLdir)] = 1
             edge_features[-1] = dist
@@ -1621,7 +1623,7 @@ def initializeAlt8(data_sequence, alt='8', wall_segments=[]):
         edge_norms.append([1.])
 
         # Edge features
-        if WITH_EDGE_FEATURES:
+        if with_edge_features:
             edge_features = th.zeros(num_rels + 4)
             edge_features[rels.index('self')] = 1
             edge_features[-1] = 0
@@ -1634,7 +1636,7 @@ def initializeAlt8(data_sequence, alt='8', wall_segments=[]):
     edge_types = th.LongTensor(edge_types)
     edge_norms = th.Tensor(edge_norms)
 
-    if WITH_EDGE_FEATURES:
+    if with_edge_features:
         edge_feats = th.stack(edge_feats_list)
     else:
         edge_feats = th.empty(0,0)
