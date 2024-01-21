@@ -9,8 +9,7 @@ import torch.nn.functional as F
 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'nets'))
-from select_gnn_pix2pix import SELECT_GNN
-# from rgcnDGL import RGCN
+from utils.select_gnn import SELECT_GNN
 
 global g_device
 
@@ -27,6 +26,7 @@ def collate(batch):
 
     return batched_graphs, labels
 
+
 def collate_list(batch):
 
     graphs = [batch[0].graphs[0]]
@@ -40,7 +40,6 @@ def collate_list(batch):
     return batched_graphs, labels
 
 
-
 class SocNavAPI(object):
     def __init__(self, base=None, dataset=None, device='cpu'):
         self.device = torch.device(device)  # For gpu change it to cuda
@@ -49,19 +48,20 @@ class SocNavAPI(object):
         self.device2 = torch.device('cuda')
         self.params = pickle.load(open(base + '/SOCNAV_V2.prms', 'rb'), fix_imports=True)
         self.params['net'] = self.params['net'].lower()
+        self.net = self.params['net']
         print(self.params)
         self.GNNmodel = SELECT_GNN(num_features=self.params['num_feats'],
                                    num_edge_feats=self.params['num_edge_feats'],
                                    n_classes=self.params['n_classes'],
                                    num_hidden=self.params['num_hidden'],
                                    gnn_layers=self.params['gnn_layers'],
-                                   cnn_layers=self.params['cnn_layers'], ###
+                                   cnn_layers=self.params['cnn_layers'],
                                    dropout=self.params['in_drop'],
                                    activation=self.params['nonlinearity'],
                                    final_activation=self.params['final_activation'],
                                    activation_cnn=self.params['nonlinearity_cnn'],
-                                   final_activation_cnn=self.params['final_activation_cnn'], ###
-                                   num_channels=self.params['num_channels'], ###
+                                   final_activation_cnn=self.params['final_activation_cnn'],
+                                   num_channels=self.params['num_channels'],
                                    gnn_type=self.params['net'],
                                    K=10,  # sage filters
                                    num_heads=self.params['heads'],
@@ -74,8 +74,7 @@ class SocNavAPI(object):
                                    num_hidden_layers_rgcn=self.params['gnn_layers'],
                                    num_hidden_layers_gat=self.params['gnn_layers'],
                                    num_hidden_layer_pairs=self.params['gnn_layers'],
-                                   alpha = self.params['alpha'],
-                                   #grid_nodes = self.params['grid_nodes']
+                                   alpha=self.params['alpha'],
                                    )
 
         self.GNNmodel.load_state_dict(torch.load(base + '/SOCNAV_V2.tch', map_location=device))
@@ -115,14 +114,8 @@ class SocNavAPI(object):
                 else:
                     logits = self.GNNmodel(feats.float(), subgraph, None)
             else:
-                self.GNNmodel.g = subgraph
-                if self.params['net'] in ['pgat', 'pgcn', 'ptag', 'psage', 'pcheb']:
-                    dataI = Data(x=feats.float(), edge_index=torch.stack(subgraph.edges()).to(self.device))
-                else:
-                    dataI = Data(x=feats.float(), edge_index=torch.stack(subgraph.edges()).to(self.device),
-                                 edge_type=subgraph.edata['rel_type'].squeeze().to(self.device))
-
-                logits = self.GNNmodel(dataI, subgraph)
+                print('Error!! the graph framework must be dgl')
+                sys.exit(1)
 
             result.append(logits)
         return result

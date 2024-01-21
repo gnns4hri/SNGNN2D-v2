@@ -400,7 +400,7 @@ class SocNavDataset(DGLDataset):
                 else:
                     self.load_one_graph(self.path)
             self.labels.append(np.zeros((1, image_width, image_width)))        
-            self.labels = th.tensor(self.labels, dtype=th.float32)
+            self.labels = th.tensor(np.array(self.labels), dtype=th.float32)
         elif type(self.path) == list and type(self.path[0]) == str:
             raw_data = json.loads(self.path)
             final_graph = self.generate_final_graph(raw_data)

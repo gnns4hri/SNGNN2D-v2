@@ -1,19 +1,17 @@
-import sys
-import random
-import json
-import numpy as np
-import os
-import cv2
-from socnav2d_V2_API import *
-from socnav2d import *
+from utils.socnav2d_V2_API import *
+from dataset.socnav2d_dataset import *
+import argparse
 import time
 import math
+
 
 def toColour(img):
     return cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
 
+
 def beautify_grey_image(img):
     return beautify_image(toColour(img))
+
 
 def beautify_image(img):
     def convert(value):
@@ -46,11 +44,13 @@ def beautify_image(img):
             img[row, col, 2] = red
     return img
 
+
 def test_sn(sngnn, scenario):
     ret = sngnn.predict(scenario)/255
     ret = ret.reshape(socnavImg.output_width, socnavImg.output_width)
     ret = cv2.resize(ret, (100, 100), interpolation=cv2.INTER_NEAREST)
     return ret
+
 
 def test_json(sngnn, filename, line):
     ret = sngnn.predict(filename, line)
@@ -79,86 +79,74 @@ def add_walls_to_grid(image, read_structure):
     return image
 
 
-if len(sys.argv)<2:
-    print("You must specify a json/txt file")
-    exit()
+if __name__ == "__main__":
 
-if sys.argv[1].endswith('.json'):
-    filenames = [sys.argv[1]]
-else:
-    filenames = open(sys.argv[1], 'r').read().splitlines()
+    parser = argparse.ArgumentParser(description='Test SNGNN2D-v2 model from a json file or from a txt file with containing a list of json files')
+    parser.add_argument('--file', '-f', type=str, required=True, help='Specify the path to the JSON or txt file to test')
+    parser.add_argument('--path', '-p', type=str, required=True, help='Specify the path to the model parameters')
+    parser.add_argument('--cuda', '-c', action='store_true', help='Use GPU if available')
+    args = parser.parse_args()
 
-device = 'cpu'
-if 'cuda' in sys.argv:
-    device = 'cuda'
+    assert args.file.endswith('.json') or args.file.endswith('.txt'), "The json file must be a json or a txt file"
+    assert os.path.exists(args.file), "The test file does not exist"
+    assert os.path.exists(args.path), "The path to the model does not exist"
 
-sngnn = SocNavAPI(base = './model_params/pix2pix', device = device)
-
-for f in filenames:
-    print(f)
-    
-    if not os.path.exists(f):
-        continue
-
-    with open(f) as json_file:
-        data = json.load(json_file)
-
-    data.reverse()
-
-
-    time_0 = time.time()
-    graph = SocNavDataset(data, mode='test', raw_dir='', alt='8', debug=True, device = device)
-
-    time_1  = time.time()
-    ret = sngnn.predictOneGraph(graph)[0]
-
-    time_2 = time.time()
-    print("total time", time_2 - time_0, "graph time", time_1 - time_0, "inference time", time_2 - time_1)
-
-    ret = ret.reshape(image_width, image_width)
-
-
-    # ret = np.clip(ret.cpu().detach().numpy(), 0., 1.)
-    ret = ret.cpu().detach().numpy()
-    ret = (255.*(ret+1)/2.).astype(np.uint8)
-    ret  = cv2.resize(ret,  (300, 300), interpolation=cv2.INTER_CUBIC)
-
-    label_filename = f.split('.')[0] + '__Q1.png'
-    label = cv2.imread(label_filename)
-    if label is None:
-        print('Couldn\'t read label file', label_filename)
-        image = ret
+    if args.file.endswith('.json'):
+        filenames = [args.file]
     else:
-        label = cv2.cvtColor(label, cv2.COLOR_BGR2GRAY)    
-        label = cv2.resize(label, (300, 300), interpolation=cv2.INTER_CUBIC)
-        image = np.concatenate((ret, label), axis=1)
-    pix2pix_filename = './images_pix2pix/'+f.split('/')[-1].split('.')[0] + '_fake_B.png'
-    pix2pix = cv2.imread(pix2pix_filename)
-    if pix2pix is not None:
-        pix2pix = cv2.cvtColor(pix2pix, cv2.COLOR_BGR2GRAY)    
-        pix2pix = cv2.resize(pix2pix, (300, 300), interpolation=cv2.INTER_CUBIC)
-        image = np.concatenate((image, pix2pix), axis=1)
-    real_filename = './images_pix2pix/'+f.split('/')[-1].split('.')[0] + '_real_A.png'        
-    real_img = cv2.imread(real_filename)
-    if real_img is not None:
-        real_img = cv2.cvtColor(real_img, cv2.COLOR_BGR2GRAY)    
-        real_img = cv2.resize(real_img, (300, 300), interpolation=cv2.INTER_CUBIC)
-        black_img = np.zeros((300, 300), dtype=np.uint8)
-        real_img = np.concatenate((black_img, real_img), axis=1)
-        real_img = np.concatenate((real_img, black_img), axis=1)
-        image = np.concatenate((real_img,image), axis=0)
-    
+        filenames = open(args.file, 'r').read().splitlines()
 
-    while True:
-        cv2.imshow("SNGNN2D", image)
-        k = cv2.waitKey(1)
-        if k == 27:
-            cv2.destroyAllWindows()
-            sys.exit()
+    device = 'cpu'
+    if args.cuda:
+        device = 'cuda'
+
+    sngnn = SocNavAPI(base=args.path + "/", device=device)
+
+    for f in filenames:
+        print(f)
+
+        if not os.path.exists(f):
+            continue
+
+        with open(f) as json_file:
+            data = json.load(json_file)
+
+        data.reverse()
+
+        time_0 = time.time()
+        graph = SocNavDataset(data, net=sngnn.net, mode='test', raw_dir='', alt='8', debug=True, device=device)
+
+        time_1 = time.time()
+        ret = sngnn.predictOneGraph(graph)[0]
+
+        time_2 = time.time()
+        print("total time", time_2 - time_0, "graph time", time_1 - time_0, "inference time", time_2 - time_1)
+
+        ret = ret.reshape(image_width, image_width)
+
+        ret = ret.cpu().detach().numpy()
+        ret = (255.*(ret+1)/2.).astype(np.uint8)
+        ret = cv2.resize(ret,  (300, 300), interpolation=cv2.INTER_CUBIC)
+
+        label_filename = f.split('.')[0] + '__Q1.png'
+        label = cv2.imread(label_filename)
+        if label is None:
+            print('Couldn\'t read label file', label_filename)
+            image = ret
         else:
-            if k == 13:
-            # if time.time()-time_show > 4.:
-                break
+            label = cv2.cvtColor(label, cv2.COLOR_BGR2GRAY)
+            label = cv2.resize(label, (300, 300), interpolation=cv2.INTER_CUBIC)
+            image = np.concatenate((ret, label), axis=1)
+
+        while True:
+            cv2.imshow("SNGNN2D-v2 output - Ground truth", image)
+            k = cv2.waitKey(1)
+            if k == 27 or cv2.getWindowProperty("SNGNN2D-v2 output - Ground truth", cv2.WND_PROP_VISIBLE) < 1:
+                cv2.destroyAllWindows()
+                sys.exit(0)
+            else:
+                if k == 13:
+                    break
 
 
 
