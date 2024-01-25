@@ -16,7 +16,7 @@ area_width = 700.  # horizontal/vertical distance between two contiguous nodes o
 # as the spatial area of the grid
 
 threshold_human_wall = 1.5
-limit = 90  # 00000000000  # Limit of graphs to load
+limit = 9000000000000  # Limit of graphs to load
 path_saves = 'saves/'  # This variable is necessary due to a bug in dgl.DGLDataset source code
 graphData = namedtuple('graphData', ['src_nodes', 'dst_nodes', 'n_nodes', 'features', 'edge_feats', 'edge_types',
                                      'edge_norms', 'position_by_id', 'typeMap', 'w_segments'])

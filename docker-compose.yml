@@ -1,0 +1,17 @@
+version: "2.6"
+
+services:
+  sngnn2d-v2:
+    runtime: nvidia
+    ipc: host
+    build: .
+    container_name: sngnn2d-v2
+    image: sngnn2d-v2
+    stdin_open: true
+    tty: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - DISPLAY=$DISPLAY
+    volumes:
+      - ./:/src
+      - /tmp/.X11-unix:/tmp/.X11-unix

@@ -395,7 +395,7 @@ if __name__ == '__main__':
 
         time_a = time.time()
         train_loss, dev_loss, test_loss, test_time, num_parameters, last_epoch, train_scores, dev_scores = main(
-            '../dataset/train_set.txt', 'dataset/dev_set.txt', 'dataset/test_set.txt', task)
+            'dataset/train_set.txt', 'dataset/dev_set.txt', 'dataset/test_set.txt', task)
         time_b = time.time()
 
         list_of_tasks[index]['train_loss'] = train_loss

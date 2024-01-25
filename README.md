@@ -66,6 +66,20 @@ python3 generate_train_dev_test.py ../raw_data
 
  Once you have generated the splits and confirmed the split percentages, the dataset is ready for training and testing the SNGNN2D-v2 model.
 
+### Data augmentation (Optional)
+
+If you wish to increase the size of the dataset you can create new data samples by mirroring the scenes in the dataset.
+You can do so using the scripts in the `dataset/data_augmentation/` directory.
+
+There is a script to mirror the data horizontally (`mirroringH_data.py`) and one to do it vertically (`mirroringV_data.py`).
+To run the scripts:
+
+```bash
+cd data/data_augmentation
+python3 mirroringH_data.py path_to_dataset.txt
+python3 mirroringV_data.py path_to_dataset.txt
+```
+You can run them in any order. It will generate a new TXT file with the new data points.
 
 ## Training the model
 
@@ -80,34 +94,7 @@ To train a single model, execute the train_single.py script from the project dir
 python3 train_single.py
 ```
 
-To modify the hyperparameters for the specific training, edit the `train_single.py` file in lines 314-337 before running the training:
-
-```python
-best_loss = main('dataset/train_set.txt', 'dataset/dev_set.txt', 'dataset/test_set.txt',
-     graph_type='8', # We recommend to always use this graph alternative.
-     net='mpnn',  # Options = gat, mpnn, rgcn (mpnn consumes a lot of gpu memory)
-     epochs=2300,
-     patience=6,  # For early stopping
-     batch_size=40,
-     num_classes=1,  # This must remain unchanged
-     num_channels=35,  # These are the number of channels to the CNN input (GNN output) 
-     num_hidden=[95, 71, 62, 57, 45, 35],  # Number of neurons of hidden layers
-     heads=[34, 28, 22, 15, 13, 10],  # Only for gat network (same number of heads as num_hidden)
-     residual=False,  # Residual connections in the CNN
-     lr=0.00005,  # Learning rate
-     weight_decay=1.e-11,
-     nonlinearity='elu',  # Activation of the hidden layers GNN
-     final_activation='relu',  # Activation of the output layer GNN
-     nonlinearity_cnn='leaky_relu',  # Activation of the hidden layers CNN
-     final_activation_cnn='tanh',  # Activation of the output layer CNN
-     gnn_layers=7,  # Must coincide with num_hidden + 1(output layer),
-     cnn_layers=3,  # This must remain unchanged
-     in_drop=0.,  # This only affect to the GAT network
-     alpha=0.2088642717278257,  # This only affect to the GAT network
-     attn_drop=0.,  # This only affect to the GAT network
-     cuda=True,  # Set it to false if you want to run on CPU
-     fw='dgl')  # This must remain unchanged
-```
+To modify the hyperparameters for the specific training, edit the `config/parameters.yml` file before running the training.
 
 Ensure the paths to the dataset's txt files are correct.
 

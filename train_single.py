@@ -5,6 +5,7 @@ import torch
 import dgl
 import pickle
 import signal
+import yaml
 
 from torch.utils.data import DataLoader
 from sklearn.metrics import mean_squared_error
@@ -299,6 +300,9 @@ def main(training_file, dev_file, test_file, graph_type=None, net=None, epochs=N
 
 
 if __name__ == '__main__':
+    with open('config/parameters.yml', 'r') as file:
+        hyparams = yaml.safe_load(file)['hyperparameters']
+
     retrain = False
     if len(sys.argv) == 3:
         ext_args = {}
@@ -311,29 +315,29 @@ if __name__ == '__main__':
 
     if not retrain:
         print("If you want to retrain, use \"python3 train.py file.prms file.tch\"")
-        best_loss = main('dataset/train_set.txt', 'dataset/dev_set.txt', 'dataset/test_set.txt',
-                         graph_type='8', # We recommend to always use this graph alternative.
-                         net='mpnn',  # Options = gat, mpnn, rgcn (mpnn consumes a lot of gpu memory)
-                         epochs=2300,
-                         patience=6,  # For early stopping
-                         batch_size=40,
+        best_loss = main(hyparams['train_file'], hyparams['dev_file'], hyparams['test_file'],
+                         graph_type=str(hyparams['graph_type']),  # We recommend to always use this graph alternative.
+                         net=hyparams['gnn_net'],  # Options = gat, mpnn, rgcn (mpnn consumes a lot of gpu memory)
+                         epochs=hyparams['epochs'],
+                         patience=hyparams['patience'],  # For early stopping
+                         batch_size=hyparams['batch_size'],
                          num_classes=1,  # This must remain unchanged
-                         num_channels=35,  # These are the number of channels to the CNN input (GNN output)
-                         num_hidden=[95, 71, 62, 57, 45, 35],  # Number of neurons of hidden layers
-                         heads=[34, 28, 22, 15, 13, 10],  # Only for gat network (same number of heads as num_hidden)
-                         residual=False,  # Residual connections in the CNN
-                         lr=0.00005,  # Learning rate
-                         weight_decay=1.e-11,
-                         nonlinearity='elu',  # Activation of the hidden layers GNN
-                         final_activation='relu',  # Activation of the output layer GNN
-                         nonlinearity_cnn='leaky_relu',  # Activation of the hidden layers CNN
-                         final_activation_cnn='tanh',  # Activation of the output layer CNN
-                         gnn_layers=7,  # Must coincide with num_hidden + 1(output layer),
+                         num_channels=hyparams['num_channels'],  # These are the number of channels to the CNN input (GNN output)
+                         num_hidden=hyparams['num_hidden'],  # Number of neurons of hidden layers
+                         heads=hyparams['heads'],  # Only for gat network (same number of heads as num_hidden)
+                         residual=hyparams['residual'],  # Residual connections in the CNN
+                         lr=hyparams['lr'],  # Learning rate
+                         weight_decay=hyparams['weight_decay'],
+                         nonlinearity=hyparams['nonlinearity'],  # Activation of the hidden layers GNN
+                         final_activation=hyparams['final_activation'],  # Activation of the output layer GNN
+                         nonlinearity_cnn=hyparams['nonlinearity_cnn'],  # Activation of the hidden layers CNN
+                         final_activation_cnn=hyparams['final_activation_cnn'],  # Activation of the output layer CNN
+                         gnn_layers=len(hyparams['num_hidden']) + 1,  # Must coincide with num_hidden + 1(output layer),
                          cnn_layers=3,  # This must remain unchanged
-                         in_drop=0.,  # This only affect to the GAT network
-                         alpha=0.2088642717278257,  # This only affect to the GAT network
-                         attn_drop=0.,  # This only affect to the GAT network
-                         cuda=True,  # Set it to false if you want to run on CPU
+                         in_drop=hyparams['in_drop'],  # This only affect to the GAT network
+                         alpha=hyparams['alpha'],  # This only affect to the GAT network
+                         attn_drop=hyparams['attn_drop'],  # This only affect to the GAT network
+                         cuda=hyparams['cuda'],  # Set it to false if you want to run on CPU
                          fw='dgl')  # This must remain unchanged
     else:
         params = pickle.load(open(ext_args['.prms'], 'rb'), fix_imports=True)
