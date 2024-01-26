@@ -29,13 +29,20 @@ git clone https://github.com/gnns4hri/SNGNN2D-v2.git
 cd SNGNN2D-v2
 ```
 
-**3. Install the required dependencies:**
-
+**3a. Install in your local machine:**
+You can create a virtual environment with python and run the following command that will install the necessary packages for running and testing the SNGNN2D-v2 model:
 ```bash
 python3 -m pip install -r requirements.txt
 ```
 
-This will install the necessary packages for running the SNGNN2D-v2 model.
+**3b. Install with docker:**
+
+*NOTE: You need to have docker-compose installed for this option
+```bash
+docker-compose run --rm sngnn2d-v2
+```
+
+You can choose either the installation in your local machine or the docker container. Take into account that the docker container can't display the images when testing the model, they will be saved in the `images_test` directory instead.
 
 ## Loading the Dataset
 

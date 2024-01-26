@@ -1,3 +1,5 @@
+import cv2
+
 from utils.socnav2d_V2_API import *
 from dataset.socnav2d_dataset import *
 import argparse
@@ -138,15 +140,34 @@ if __name__ == "__main__":
             label = cv2.resize(label, (300, 300), interpolation=cv2.INTER_CUBIC)
             image = np.concatenate((ret, label), axis=1)
 
+        first_time = True
+
         while True:
-            cv2.imshow("SNGNN2D-v2 output - Ground truth", image)
-            k = cv2.waitKey(1)
-            if k == 27 or cv2.getWindowProperty("SNGNN2D-v2 output - Ground truth", cv2.WND_PROP_VISIBLE) < 1:
-                cv2.destroyAllWindows()
-                sys.exit(0)
+            if first_time:
+                try:
+                    cv2.imshow("SNGNN2D-v2 output - Ground truth", image)
+                    k = cv2.waitKey(1)
+                    if k == 27 or cv2.getWindowProperty("SNGNN2D-v2 output - Ground truth", cv2.WND_PROP_VISIBLE) < 1:
+                        cv2.destroyAllWindows()
+                        sys.exit(0)
+                    else:
+                        if k == 13:
+                            break
+                except cv2.error as e:
+
+                        directory = 'images_test'
+                        print(f'It is not possible to display the image, saving them into {directory} instead')
+                        first_time = False
+
+                        try:
+                            os.makedirs(directory, exist_ok=True)
+                        except OSError as error:
+                            print('Exception creating directory:', directory, f'bcause of error {error}')
+                            sys.exit(1)
             else:
-                if k == 13:
-                    break
+                filename = label_filename.split('/')[-1]
+                cv2.imwrite(f'{directory}/SNGNN2D-v2 output-{filename}', image)
+                break
 
 
 
