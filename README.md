@@ -1,6 +1,6 @@
 # Social Navigation with Graph Neural Networks 2D (2<sup>nd</sup> version), SNGNN2D-v2
 
-This repository contains the code for the [SNGNN2D-v2: a learning-based scenario-agnostic model for the generation of socially-aware cost maps in dynamic environments](#) paper.
+This repository contains the code for the [SNGNN2D-v2: A GNN-Based Model for the Generation of Human-Aware Costs Maps in Dynamic Environments](#) paper.
 
 This work presents a model capable of generating cost maps for Human-Aware Navigation (HAN) with robots that considers the discomfort caused by the robot to pedestrians and the dynamics of the environment.
 The model is scenario-agnostic, meaning that it can be trained with the dataset provided or use our trained model, and it can be used in any environment without retraining.
