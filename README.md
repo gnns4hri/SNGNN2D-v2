@@ -4,9 +4,7 @@ This repository contains the code for the [SNGNN2D-v2: A GNN-Based Model for the
 
 This work presents a model capable of generating cost maps for Human-Aware Navigation (HAN) with robots that considers the discomfort caused by the robot to pedestrians and the dynamics of the environment.
 The model is scenario-agnostic, meaning that it can be trained with the dataset provided or use our trained model, and it can be used in any environment without retraining.
-Our model takes the information from a short video (3 seconds) stored in a graph and directly produces the cost map. This process is represented in the following figure:
-
-![Image of the dataset generation](resources/2D_dataset_generation.jpg)
+Our model takes the information from a short video (3 seconds) stored in a graph and directly produces the cost map. 
 
 Since the model can generate a map every 11 milliseconds, it can be used in real-time HAN applications.
 The following two images represent the output of our model for two different room shapes and a real experiment with a robot using our maps in the ROS navigation stack:
