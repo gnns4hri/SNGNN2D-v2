@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('--scenarios_path', '-s', type=str, required=False, default='./videos/',help='Specify the path to videos of the scenarios')
     args = parser.parse_args()
 
-    assert args.file.endswith('.json') or args.file.endswith('.txt'), "The json file must be a json or a txt file"
+    assert args.file.endswith('.json') or args.file.endswith('.txt'), "The file must be a json or a txt file"
     assert os.path.exists(args.file), "The test file does not exist"
     assert os.path.exists(args.model_path), "The path to the model does not exist"
 
