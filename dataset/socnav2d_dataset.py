@@ -9,7 +9,8 @@ from dgl.data.utils import save_info, load_info
 
 import cv2
 
-from .alternatives import *
+sys.path.append(os.path.dirname(__file__))
+from alternatives import *
 
 #################################################################
 # Class to load the dataset

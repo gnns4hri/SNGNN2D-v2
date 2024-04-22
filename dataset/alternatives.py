@@ -1,5 +1,8 @@
+import sys
+import os
 
-from .alternatives_utils import *
+sys.path.append(os.path.dirname(__file__))
+from alternatives_utils import *
 
 
 #################################################################

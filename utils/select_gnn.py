@@ -1,13 +1,18 @@
+import sys
+import os
 import torch
 import torch.nn as nn
-from nets.rgcnDGL import RGCN
-from nets.gat import GAT
-from nets.mpnn_dgl import MPNN
-from nets.Tconv import ResnetGenerator
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../nets'))
+from rgcnDGL import RGCN
+from gat import GAT
+from mpnn_dgl import MPNN
+from Tconv import ResnetGenerator
 import dgl
 import functools
 import torch.nn.functional as F
-from dataset.alternatives_utils import grid_width, image_width
+sys.path.append(os.path.join(os.path.dirname(__file__), '../dataset'))
+from alternatives_utils import grid_width, image_width
 
 
 def get_activation_function(activation_name):

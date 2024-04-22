@@ -7,9 +7,10 @@ import os
 import pickle
 import torch.nn.functional as F
 
-
+sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'nets'))
-from utils.select_gnn import SELECT_GNN
+
+from select_gnn import SELECT_GNN
 
 global g_device
 
