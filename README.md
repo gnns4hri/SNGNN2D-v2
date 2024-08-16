@@ -3,7 +3,7 @@
 This repository contains the code for the [SNGNN2D-v2: A GNN-Based Model for the Generation of Human-Aware Costs Maps in Dynamic Environments](#) paper.
 
 This work presents a model capable of generating cost maps for Human-Aware Navigation (HAN) with robots that considers the discomfort caused by the robot to pedestrians and the dynamics of the environment.
-The model is invariant to changes of appearances in the environment, meaning that it can be trained with the dataset provided or use our trained model, and it can be used in other environment without retraining.
+The model is invariant to changes of appearances in the environment, meaning that it can be trained with the dataset provided or use our trained model, and it can be used in other environments without retraining.
 Our model takes the information from a short video (3 seconds) stored in a graph and directly produces the cost map. 
 
 Since the model can generate a map every 11 milliseconds, it can be used in real-time HAN applications.
