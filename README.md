@@ -13,7 +13,7 @@ The following two images represent the output of our model for two different roo
 
 The next video shows the real-time generation of cost maps in simulated scenarios created with [SocNavGym](https://github.com/gnns4hri/SocNavGym)
 
-[https://github.com/gnns4hri/SNGNN2D-v2/blob/main/resources/sngnn2D-v2_demo_video.mp4](https://github.com/user-attachments/assets/5e9c589e-7eb0-4fd0-b65c-815fc029066f)
+[https://github.com/gnns4hri/SNGNN2D-v2/blob/main/resources/sngnn2D-v2_demo_video.mp4](https://github.com/user-attachments/assets/28188d5e-c198-4135-8468-289e57b739ae)
 
 ## Installation
 
