@@ -11,6 +11,8 @@ The following two images represent the output of our model for two different roo
 
 ![Images of the results for the L shaped figure and squared shaped figure](resources/results.png)  ![Images representing the maps working with a real robot](resources/real_path.jpg)
 
+The next video shows the real-time generation of cost maps in simulated scenarios created with [SocNavGym](https://github.com/gnns4hri/SocNavGym)
+
 [https://github.com/gnns4hri/SNGNN2D-v2/blob/main/resources/sngnn2D-v2_demo_video.mp4](https://github.com/user-attachments/assets/a618757d-4479-439c-93f8-e9338f4c993b)
 
 ## Installation
