@@ -1,6 +1,6 @@
 # Social Navigation with Graph Neural Networks 2D (2<sup>nd</sup> version), SNGNN2D-v2
 
-This repository contains the code for the [SNGNN2D-v2: A GNN-Based Model for the Generation of Human-Aware Costs Maps in Dynamic Environments](#) paper.
+This repository contains the code for the [SNGNN2D-v2: A GNN-Based Model for the Generation of Human-Aware Costs Maps in Dynamic Environments](https://link.springer.com/article/10.1007/s12369-024-01190-6) paper.
 
 This work presents a model capable of generating cost maps for Human-Aware Navigation (HAN) with robots that considers the discomfort caused by the robot to pedestrians and the dynamics of the environment.
 The model is invariant to changes of appearances in the environment, meaning that it can be trained with the dataset provided or use our trained model, and it can be used in other environments without retraining.
